@@ -55,17 +55,6 @@ class Product(db.Model):
             'experiment_id': self.experiment_id
         }
 
-    def get_files(self, start_date = None, end_date = None):
-        print('g')
-        files = self.files
-        if start_date:
-            files = files.filter(File.dateTime >= start_date)
-            print('s')
-        if end_date:
-            files = files.filter(File.dateTime <= end_date)
-            print('e')
-        return files.all()
-
 class File(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     path = db.Column(db.String(1000))
@@ -176,12 +165,12 @@ def create_product():
 @app.route('/files/', methods = ['GET'])
 
 def get_files():
-    if not request.json:
+    if not request.json:    
         files = File.query.all()
     else:
         args = request.json
-        s = args['start_date'] if 'start_date' in args else None
-        e = args['end_date'] if 'end_date' in args else None
+        s = args['start_date'] if 'start_date' in args else datetime.min.strftime('%Y-%m-%d %H:%M:%S')
+        e = args['end_date'] if 'end_date' in args else datetime.max.strftime('%Y-%m-%d %H:%M:%S')
         products = []
         if 'product_ids' in args:
             products = Product.query.filter(Product.id.in_(args['product_ids'])).all()
@@ -189,9 +178,14 @@ def get_files():
             expts = Experiment.query.filter(Experiment.id.in_(args['experiment_ids'])).all()
             for expt in expts:
                 products = products + expt.products
-        files = []
+        file_ids = []
         for p in products:
-            files = files + p.get_files(s,e)
+            for f in p.files:
+                file_ids.append(f.id)                               # file IDs of selected experiments and products
+        files = File.query.filter(                                  # SQL filtering
+                    File.id.in_(file_ids),                          # by ID
+                    File.dateTime >= s,                             # beyond start_date
+                    File.dateTime <= e).all()                       # before end_date
     return jsonify({'files': [ f.serialize() for f in files ]})
 
 @app.route('/files/<int:id>', methods = ['GET'])
@@ -219,6 +213,8 @@ def delete_file(id):
     return jsonify({'result': True})
 
 @app.route('/files/', methods = ['POST'])
+
+# TODO: Add possibility to create file from experiment and product names (instead of id)
 
 def create_file():
     if not request.json or not 'path' in request.json or not 'product_id' in request.json:
