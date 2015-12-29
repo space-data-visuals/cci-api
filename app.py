@@ -55,6 +55,17 @@ class Product(db.Model):
             'experiment_id': self.experiment_id
         }
 
+    def get_files(self, start_date = None, end_date = None):
+        print('g')
+        files = self.files
+        if start_date:
+            files = files.filter(File.dateTime >= start_date)
+            print('s')
+        if end_date:
+            files = files.filter(File.dateTime <= end_date)
+            print('e')
+        return files.all()
+
 class File(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     path = db.Column(db.String(1000))
@@ -169,12 +180,18 @@ def get_files():
         files = File.query.all()
     else:
         args = request.json
-        if 'product_id' in args:
-            files = File.query.filter_by(product_id = args['product_id']).all()
-        if 'start' in args and 'end' in args:
-            s = args['start']
-            e = args['end']
-            files = File.query.filter(File.dateTime <= e, File.dateTime >= s).all()
+        s = args['start_date'] if 'start_date' in args else None
+        e = args['end_date'] if 'end_date' in args else None
+        products = []
+        if 'product_ids' in args:
+            products = Product.query.filter(Product.id.in_(args['product_ids'])).all()
+        if 'experiment_ids' in args:
+            expts = Experiment.query.filter(Experiment.id.in_(args['experiment_ids'])).all()
+            for expt in expts:
+                products = products + expt.products
+        files = []
+        for p in products:
+            files = files + p.get_files(s,e)
     return jsonify({'files': [ f.serialize() for f in files ]})
 
 @app.route('/files/<int:id>', methods = ['GET'])
