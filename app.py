@@ -1,4 +1,14 @@
 #!/usr/bin/env python
+"""Flask REST API to access custom ESA CCI database.
+
+Acts as an interface to store data from the cci-sort script in a database.
+Database configuration is done in config.py.
+
+Attributes:
+    app: Flask application.
+    date_format (str): Format used to represent date in database.
+    db: Database access through SQLAlchemy.
+"""
 
 from flask import Flask, jsonify, abort, request
 
@@ -133,17 +143,40 @@ class File(db.Model):
 
 @app.route('/experiments/', methods=['GET'])
 def get_experiments():
+    """Fetches all experiments from database.
+
+    Returns:
+        dict: Experiments in JSON format.
+    """
     exps = Experiment.query.all()
     return jsonify({'experiments': [exp.serialize() for exp in exps]})
 
 
 @app.route('/experiments/<int:id>', methods=['GET'])
 def get_experiment(id):
+    """Fetches experiment from database.
+
+    Args:
+        id (int): Experiment's id.
+
+    Returns:
+        dict: Experiment in JSON format.
+    """
     return jsonify({'experiment': Experiment.query.get(id).serialize()})
 
 
 @app.route('/experiments/<int:id>', methods=['PUT'])
 def update_experiment(id):
+    """Updates experiment in database.
+
+    Uses data contained in the JSON attached to the request.
+
+    Args:
+        id (int): Experiment's id.
+
+    Returns:
+        dict: Updated experiment in JSON format.
+    """
     exp = Experiment.query.get(id)
     exp.name = request.json.get('name', exp.name)
     exp.desc = request.json.get('desc', exp.desc)
@@ -153,6 +186,14 @@ def update_experiment(id):
 
 @app.route('/experiments/<int:id>', methods=['DELETE'])
 def delete_experiment(id):
+    """Deletes experiment in database.
+
+    Args:
+        id (int): Experiment's id.
+
+    Returns:
+        dict: Confirmation of deletion in JSON format.
+    """
     db.session.delete(Experiment.query.get(id))
     db.session.commit()
     return jsonify({'result': True})
@@ -160,6 +201,13 @@ def delete_experiment(id):
 
 @app.route('/experiments/', methods=['POST'])
 def create_experiment():
+    """Creates experiment in database.
+
+    Uses data contained in the JSON attached to the request.
+
+    Returns:
+        dict: New experiment in JSON format.
+    """
     if not request.json or 'name' not in request.json:
         abort(400)
     exp = Experiment(request.json.get('name'), request.json.get('desc', ''))
@@ -173,17 +221,40 @@ def create_experiment():
 
 @app.route('/products/', methods=['GET'])
 def get_products():
+    """Fetches all products from database.
+
+    Returns:
+        dict: Products in JSON format.
+    """
     products = Product.query.all()
     return jsonify({'products': [prd.serialize() for prd in products]})
 
 
 @app.route('/products/<int:id>', methods=['GET'])
 def get_product(id):
+    """Fetches product from database.
+
+    Args:
+        id (int): Product's id.
+
+    Returns:
+        dict: Product in JSON format.
+    """
     return jsonify({'product': Product.query.get(id).serialize()})
 
 
 @app.route('/products/<int:id>', methods=['PUT'])
 def update_product(id):
+    """Updates product in database.
+
+    Uses data contained in the JSON attached to the request.
+
+    Args:
+        id (int): Product's id.
+
+    Returns:
+        dict: Updated product in JSON format.
+    """
     prd = Product.query.get(id)
     prd.name = request.json.get('name', prd.name)
     prd.desc = request.json.get('desc', prd.desc)
@@ -194,6 +265,14 @@ def update_product(id):
 
 @app.route('/products/<int:id>', methods=['DELETE'])
 def delete_product(id):
+    """Deletes product in database.
+
+    Args:
+        id (int): Product's id.
+
+    Returns:
+        dict: Confirmation of deletion in JSON format.
+    """
     db.session.delete(Product.query.get(id))
     db.session.commit()
     return jsonify({'result': True})
@@ -201,8 +280,15 @@ def delete_product(id):
 
 @app.route('/products/', methods=['POST'])
 def create_product():
+    """Creates product in database.
+
+    Uses data contained in the JSON attached to the request.
+
+    Returns:
+        dict: New product in JSON format.
+    """
     if not request.json or 'name' not in request.json \
-                        or 'experiment_id' not in request.json:
+       or 'experiment_id' not in request.json:
         abort(400)
     prd = Product(request.json.get('name'), request.json.get('desc', ''),
                   request.json.get('experiment_id'))
@@ -216,6 +302,13 @@ def create_product():
 
 @app.route('/files/', methods=['GET'])
 def get_files():
+    """Fetches all files from database and filters them.
+
+    Uses data contained in the JSON attached to the request.
+
+    Returns:
+        dict: Files in JSON format.
+    """
     if not request.json:
         files = File.query.all()
     else:
@@ -246,11 +339,29 @@ def get_files():
 
 @app.route('/files/<int:id>', methods=['GET'])
 def get_file(id):
+    """Fetches file from database.
+
+    Args:
+        id (int): File's id.
+
+    Returns:
+        dict: File in JSON format.
+    """
     return jsonify({'file': File.query.get(id).serialize()})
 
 
 @app.route('/files/<int:id>', methods=['PUT'])
 def update_file(id):
+    """Updates file in database.
+
+    Uses data contained in the JSON attached to the request.
+
+    Args:
+        id (int): File's id.
+
+    Returns:
+        dict: File in JSON format.
+    """
     f = File.query.get(id)
     f.path = request.json.get('path', f.path)
     if 'dateTime' in request.json:
@@ -263,6 +374,14 @@ def update_file(id):
 
 @app.route('/files/<int:id>', methods=['DELETE'])
 def delete_file(id):
+    """Deletes file in database.
+
+    Args:
+        id (int): File's id.
+
+    Returns:
+        dict: Confirmation of deletion in JSON format.
+    """
     db.session.delete(File.query.get(id))
     db.session.commit()
     return jsonify({'result': True})
@@ -270,6 +389,13 @@ def delete_file(id):
 
 @app.route('/files/', methods=['POST'])
 def create_file():
+    """Creates file in database.
+
+    Uses data contained in the JSON attached to the request.
+
+    Returns:
+        dict: New file in JSON format.
+    """
     if not request.json or 'path' not in request.json \
                         or 'product_id' not in request.json:
         abort(400)
