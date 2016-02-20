@@ -1,3 +1,6 @@
+# Ignore venv folder
+venv/
+
 # Ignore sqlite database
 *.sqlite
 
